@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ctypes
-import warnings
 from ctypes import wintypes
 from dataclasses import dataclass
 
