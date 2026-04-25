@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+import warnings
 from ctypes import wintypes
 from dataclasses import dataclass
 
@@ -58,6 +59,7 @@ _CDS_UPDATEREGISTRY = 0x00000001
 _CDS_NORESET = 0x10000000
 _CDS_SET_PRIMARY = 0x00000010
 _DISP_CHANGE_SUCCESSFUL = 0
+_DISP_CHANGE_RESTART = 1
 
 _user32 = ctypes.windll.user32
 
@@ -181,7 +183,11 @@ def apply_layout(saved_monitors: list[dict]) -> list[str]:
         result = _user32.ChangeDisplaySettingsExA(
             live_mon.device_name.encode(), ctypes.byref(dm), None, flags, None
         )
-        if result != _DISP_CHANGE_SUCCESSFUL:
+        if result == _DISP_CHANGE_RESTART:
+            warnings.append(
+                f"Monitor {entry['hardware_id']}: a system restart is required for the change to take effect."
+            )
+        elif result != _DISP_CHANGE_SUCCESSFUL:
             raise RuntimeError(
                 f"Failed to stage monitor {entry['hardware_id']}: Windows error {result}"
             )
@@ -195,10 +201,14 @@ def apply_layout(saved_monitors: list[dict]) -> list[str]:
         dm.dmPosition.x = extra.position_x
         dm.dmPosition.y = extra.position_y
         dm.dmFields = _DM_POSITION
-        _user32.ChangeDisplaySettingsExA(
+        result = _user32.ChangeDisplaySettingsExA(
             extra.device_name.encode(), ctypes.byref(dm), None,
             _CDS_UPDATEREGISTRY | _CDS_NORESET, None,
         )
+        if result not in (_DISP_CHANGE_SUCCESSFUL, _DISP_CHANGE_RESTART):
+            warnings.append(
+                f"Monitor {extra.hardware_id} could not be repositioned: Windows error {result}"
+            )
 
     _user32.ChangeDisplaySettingsExA(None, None, None, 0, None)
     return warnings
