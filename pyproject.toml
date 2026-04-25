@@ -1,0 +1,18 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "screenswap"
+version = "0.1.0"
+description = "Save and restore Windows monitor layouts by name"
+requires-python = ">=3.8"
+dependencies = [
+    "click",
+]
+
+[project.scripts]
+screenswap = "screenswap.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/screenswap"]
