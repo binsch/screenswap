@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import errno
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -14,14 +16,14 @@ def save_layout(name: str, monitors: list[dict]) -> None:
         "name": name,
         "saved_at": datetime.now().isoformat(timespec="seconds"),
         "monitors": monitors,
-    }, indent=2))
+    }, indent=2), encoding="utf-8")
 
 
 def load_layout(name: str) -> dict:
     path = LAYOUTS_DIR / f"{name}.json"
     if not path.exists():
         raise FileNotFoundError(name)
-    return json.loads(path.read_text())
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def list_layouts() -> list[str]:
@@ -32,6 +34,7 @@ def list_layouts() -> list[str]:
 
 def delete_layout(name: str) -> None:
     path = LAYOUTS_DIR / f"{name}.json"
-    if not path.exists():
-        raise FileNotFoundError(name)
-    path.unlink()
+    try:
+        path.unlink()
+    except FileNotFoundError:
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), name) from None
