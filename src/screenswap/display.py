@@ -160,12 +160,10 @@ def apply_layout(saved_monitors: list[dict]) -> list[str]:
             "Consider running 'screenswap save <name>' to include it in this layout."
         )
 
-    for entry, live_mon in matched:
+    # Stage non-primary monitors first, then primary — some drivers require this order
+    for entry, live_mon in sorted(matched, key=lambda p: p[0]["is_primary"]):
         dm = _DEVMODE()
         dm.dmSize = ctypes.sizeof(_DEVMODE)
-        _user32.EnumDisplaySettingsA(
-            live_mon.device_name.encode(), _ENUM_CURRENT_SETTINGS, ctypes.byref(dm)
-        )
         dm.dmPelsWidth = entry["width"]
         dm.dmPelsHeight = entry["height"]
         dm.dmPosition.x = entry["position_x"]
@@ -194,9 +192,6 @@ def apply_layout(saved_monitors: list[dict]) -> list[str]:
     for extra in extras:
         dm = _DEVMODE()
         dm.dmSize = ctypes.sizeof(_DEVMODE)
-        _user32.EnumDisplaySettingsA(
-            extra.device_name.encode(), _ENUM_CURRENT_SETTINGS, ctypes.byref(dm)
-        )
         dm.dmPosition.x = extra.position_x
         dm.dmPosition.y = extra.position_y
         dm.dmFields = _DM_POSITION
