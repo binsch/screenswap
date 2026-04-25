@@ -57,6 +57,17 @@ def test_save_calls_storage_with_correct_data(runner, mocker):
     }])
 
 
+def test_save_get_monitors_fails(mocker):
+    runner = CliRunner()
+    mocker.patch(
+        "screenswap.cli.display.get_current_monitors",
+        side_effect=OSError("access denied"),
+    )
+    result = runner.invoke(main, ["save", "productivity"])
+    assert result.exit_code == 1
+    assert "Failed to read" in result.stderr
+
+
 # --- list ---
 
 def test_list_empty(runner, mocker):
@@ -96,14 +107,16 @@ def test_load_prints_warnings(runner, mocker):
     assert "applied" in result.output
 
 
-def test_load_unknown_layout(runner, mocker):
+def test_load_unknown_layout(mocker):
+    runner = CliRunner()
     mocker.patch("screenswap.cli.storage.load_layout", side_effect=FileNotFoundError("nope"))
     result = runner.invoke(main, ["load", "nope"])
     assert result.exit_code == 1
-    assert "not found" in result.output
+    assert "not found" in result.stderr
 
 
-def test_load_missing_monitor(runner, mocker):
+def test_load_missing_monitor(mocker):
+    runner = CliRunner()
     mocker.patch("screenswap.cli.storage.load_layout", return_value=SAMPLE_LAYOUT)
     mocker.patch(
         "screenswap.cli.display.apply_layout",
@@ -111,7 +124,7 @@ def test_load_missing_monitor(runner, mocker):
     )
     result = runner.invoke(main, ["load", "productivity"])
     assert result.exit_code == 1
-    assert "not found" in result.output
+    assert "Is it connected" in result.stderr
 
 
 # --- delete ---
@@ -123,8 +136,9 @@ def test_delete_success(runner, mocker):
     assert "deleted" in result.output
 
 
-def test_delete_unknown(runner, mocker):
+def test_delete_unknown(mocker):
+    runner = CliRunner()
     mocker.patch("screenswap.cli.storage.delete_layout", side_effect=FileNotFoundError("nope"))
     result = runner.invoke(main, ["delete", "nope"])
     assert result.exit_code == 1
-    assert "not found" in result.output
+    assert "not found" in result.stderr

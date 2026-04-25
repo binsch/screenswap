@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import sys
-
 import click
 
 from . import display, storage
@@ -16,7 +14,11 @@ def main() -> None:
 @click.argument("name")
 def save(name: str) -> None:
     """Save current monitor layout."""
-    monitors = display.get_current_monitors()
+    try:
+        monitors = display.get_current_monitors()
+    except Exception as e:
+        click.echo(f"Failed to read monitor configuration: {e}", err=True)
+        raise click.exceptions.Exit(1)
     monitor_dicts = [
         {
             "hardware_id": m.hardware_id,
@@ -30,7 +32,11 @@ def save(name: str) -> None:
         }
         for m in monitors
     ]
-    storage.save_layout(name, monitor_dicts)
+    try:
+        storage.save_layout(name, monitor_dicts)
+    except OSError as e:
+        click.echo(f"Failed to save layout '{name}': {e}", err=True)
+        raise click.exceptions.Exit(1)
     click.echo(f"Layout '{name}' saved ({len(monitors)} monitor(s)).")
 
 
@@ -56,13 +62,13 @@ def load(name: str) -> None:
             f"Layout '{name}' not found. Run 'screenswap list' to see saved layouts.",
             err=True,
         )
-        sys.exit(1)
+        raise click.exceptions.Exit(1)
 
     try:
         warnings = display.apply_layout(layout["monitors"])
     except RuntimeError as e:
         click.echo(str(e), err=True)
-        sys.exit(1)
+        raise click.exceptions.Exit(1)
 
     for warning in warnings:
         click.echo(warning)
@@ -80,5 +86,5 @@ def delete(name: str) -> None:
             f"Layout '{name}' not found. Run 'screenswap list' to see saved layouts.",
             err=True,
         )
-        sys.exit(1)
+        raise click.exceptions.Exit(1)
     click.echo(f"Layout '{name}' deleted.")
